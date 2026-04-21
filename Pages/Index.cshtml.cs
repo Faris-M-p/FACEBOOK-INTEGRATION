@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using FACEBOOK_INTEGRATION.Data;
 using FACEBOOK_INTEGRATION.Extensions;
+using FACEBOOK_INTEGRATION.Interface;
 using FACEBOOK_INTEGRATION.Models;
 
 namespace FACEBOOK_INTEGRATION.Pages
@@ -9,9 +9,9 @@ namespace FACEBOOK_INTEGRATION.Pages
     public class IndexModel : PageModel
     {
         private readonly ILogger<IndexModel> _logger;
-        private readonly ClientRepository _clients;
+        private readonly IClientInterface _clients;
 
-        public IndexModel(ILogger<IndexModel> logger, ClientRepository clients)
+        public IndexModel(ILogger<IndexModel> logger, IClientInterface clients)
         {
             _logger = logger;
             _clients = clients;

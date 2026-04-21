@@ -1,5 +1,5 @@
-using FACEBOOK_INTEGRATION.Data;
 using FACEBOOK_INTEGRATION.Extensions;
+using FACEBOOK_INTEGRATION.Interface;
 using FACEBOOK_INTEGRATION.Models;
 using FACEBOOK_INTEGRATION.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,13 +9,13 @@ namespace FACEBOOK_INTEGRATION.Pages.Facebook;
 
 public sealed class PostModel : PageModel
 {
-    private readonly FacebookConnectionRepository _connections;
-    private readonly FacebookPageRepository _pages;
+    private readonly IFacebookConnectionInterface _connections;
+    private readonly IFacebookPageInterface _pages;
     private readonly FacebookTokenService _tokenService;
 
     public PostModel(
-        FacebookConnectionRepository connections,
-        FacebookPageRepository pages,
+        IFacebookConnectionInterface connections,
+        IFacebookPageInterface pages,
         FacebookTokenService tokenService)
     {
         _connections = connections;

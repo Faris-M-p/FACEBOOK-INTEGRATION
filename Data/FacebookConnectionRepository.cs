@@ -1,79 +1,63 @@
+using FACEBOOK_INTEGRATION.Interface;
 using FACEBOOK_INTEGRATION.Models;
+using FACEBOOK_INTEGRATION.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace FACEBOOK_INTEGRATION.Data;
 
-public sealed class FacebookConnectionRepository
+public sealed class FacebookConnectionRepository : IFacebookConnectionInterface
 {
-    private readonly SqlConnectionFactory _factory;
+    private readonly AppDbContext _dbContext;
 
-    public FacebookConnectionRepository(SqlConnectionFactory factory)
+    public FacebookConnectionRepository(AppDbContext dbContext)
     {
-        _factory = factory;
+        _dbContext = dbContext;
     }
 
     public async Task<FacebookConnection?> GetByClientIdAsync(int clientId, CancellationToken ct = default)
     {
-        await using var conn = _factory.Create();
-        await conn.OpenAsync(ct);
-
-        // Expected:
-        // FacebookConnections(ClientId int PK/FK, UserAccessToken nvarchar(max), ExpiresAtUtc datetimeoffset null, LastSyncUtc datetimeoffset null)
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"
-SELECT ClientId, UserAccessToken, ExpiresAtUtc, LastSyncUtc
-FROM FacebookConnections
-WHERE ClientId = @ClientId";
-        cmd.Parameters.AddWithValue("@ClientId", clientId);
-
-        await using var r = await cmd.ExecuteReaderAsync(ct);
-        if (!await r.ReadAsync(ct)) return null;
-
-        return new FacebookConnection(
-            ClientId: r.GetInt32(0),
-            UserAccessToken: r.GetString(1),
-            ExpiresAtUtc: r.IsDBNull(2) ? (DateTimeOffset?)null : r.GetFieldValue<DateTimeOffset>(2),
-            LastSyncUtc: r.IsDBNull(3) ? (DateTimeOffset?)null : r.GetFieldValue<DateTimeOffset>(3)
-        );
+        return await _dbContext.FacebookConnections
+            .AsNoTracking()
+            .Where(c => c.ClientId == clientId)
+            .Select(c => new FacebookConnection(c.ClientId, c.UserAccessToken, c.ExpiresAtUtc, c.LastSyncUtc))
+            .FirstOrDefaultAsync(ct);
     }
 
     public async Task UpsertAsync(FacebookConnection connection, CancellationToken ct = default)
     {
-        await using var conn = _factory.Create();
-        await conn.OpenAsync(ct);
+        var entity = await _dbContext.FacebookConnections
+            .FirstOrDefaultAsync(c => c.ClientId == connection.ClientId, ct);
 
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"
-IF EXISTS (SELECT 1 FROM FacebookConnections WHERE ClientId = @ClientId)
-BEGIN
-  UPDATE FacebookConnections
-  SET UserAccessToken = @UserAccessToken,
-      ExpiresAtUtc = @ExpiresAtUtc,
-      LastSyncUtc = @LastSyncUtc
-  WHERE ClientId = @ClientId
-END
-ELSE
-BEGIN
-  INSERT INTO FacebookConnections (ClientId, UserAccessToken, ExpiresAtUtc, LastSyncUtc)
-  VALUES (@ClientId, @UserAccessToken, @ExpiresAtUtc, @LastSyncUtc)
-END";
-        cmd.Parameters.AddWithValue("@ClientId", connection.ClientId);
-        cmd.Parameters.AddWithValue("@UserAccessToken", connection.UserAccessToken);
-        cmd.Parameters.AddWithValue("@ExpiresAtUtc", (object?)connection.ExpiresAtUtc ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@LastSyncUtc", (object?)connection.LastSyncUtc ?? DBNull.Value);
+        if (entity is null)
+        {
+            entity = new FacebookConnectionEntity
+            {
+                ClientId = connection.ClientId,
+                UserAccessToken = connection.UserAccessToken,
+                ExpiresAtUtc = connection.ExpiresAtUtc,
+                LastSyncUtc = connection.LastSyncUtc
+            };
+            _dbContext.FacebookConnections.Add(entity);
+        }
+        else
+        {
+            entity.UserAccessToken = connection.UserAccessToken;
+            entity.ExpiresAtUtc = connection.ExpiresAtUtc;
+            entity.LastSyncUtc = connection.LastSyncUtc;
+        }
 
-        await cmd.ExecuteNonQueryAsync(ct);
+        await _dbContext.SaveChangesAsync(ct);
     }
 
     public async Task UpdateLastSyncAsync(int clientId, DateTimeOffset lastSyncUtc, CancellationToken ct = default)
     {
-        await using var conn = _factory.Create();
-        await conn.OpenAsync(ct);
+        var entity = await _dbContext.FacebookConnections
+            .FirstOrDefaultAsync(c => c.ClientId == clientId, ct);
 
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "UPDATE FacebookConnections SET LastSyncUtc = @LastSyncUtc WHERE ClientId = @ClientId";
-        cmd.Parameters.AddWithValue("@ClientId", clientId);
-        cmd.Parameters.AddWithValue("@LastSyncUtc", lastSyncUtc);
-        await cmd.ExecuteNonQueryAsync(ct);
+        if (entity is not null)
+        {
+            entity.LastSyncUtc = lastSyncUtc;
+            await _dbContext.SaveChangesAsync(ct);
+        }
     }
 }
-

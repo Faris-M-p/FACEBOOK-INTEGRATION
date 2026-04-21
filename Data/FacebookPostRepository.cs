@@ -1,14 +1,16 @@
+using FACEBOOK_INTEGRATION.Interface;
 using FACEBOOK_INTEGRATION.Models;
+using FACEBOOK_INTEGRATION.Models.Entities;
 
 namespace FACEBOOK_INTEGRATION.Data;
 
-public sealed class FacebookPostRepository
+public sealed class FacebookPostRepository : IFacebookPostInterface
 {
-    private readonly SqlConnectionFactory _factory;
+    private readonly AppDbContext _dbContext;
 
-    public FacebookPostRepository(SqlConnectionFactory factory)
+    public FacebookPostRepository(AppDbContext dbContext)
     {
-        _factory = factory;
+        _dbContext = dbContext;
     }
 
     public async Task InsertAsync(
@@ -21,25 +23,19 @@ public sealed class FacebookPostRepository
         string? facebookPostId,
         CancellationToken ct = default)
     {
-        await using var conn = _factory.Create();
-        await conn.OpenAsync(ct);
+        var entity = new FacebookPostEntity
+        {
+            ClientId = clientId,
+            PageId = pageId,
+            PostType = postType.ToString(),
+            Caption = caption,
+            Ok = ok,
+            Message = message,
+            FacebookPostId = facebookPostId,
+            CreatedUtc = DateTimeOffset.UtcNow
+        };
 
-        // Expected:
-        // FacebookPosts(ClientId int, PageId nvarchar(50), PostType nvarchar(20) or int, Caption nvarchar(max),
-        //              Ok bit, Message nvarchar(max), FacebookPostId nvarchar(100) null, CreatedUtc datetimeoffset)
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"
-INSERT INTO FacebookPosts (ClientId, PageId, PostType, Caption, Ok, Message, FacebookPostId, CreatedUtc)
-VALUES (@ClientId, @PageId, @PostType, @Caption, @Ok, @Message, @FacebookPostId, @CreatedUtc)";
-        cmd.Parameters.AddWithValue("@ClientId", clientId);
-        cmd.Parameters.AddWithValue("@PageId", pageId);
-        cmd.Parameters.AddWithValue("@PostType", postType.ToString());
-        cmd.Parameters.AddWithValue("@Caption", caption);
-        cmd.Parameters.AddWithValue("@Ok", ok);
-        cmd.Parameters.AddWithValue("@Message", message);
-        cmd.Parameters.AddWithValue("@FacebookPostId", (object?)facebookPostId ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@CreatedUtc", DateTimeOffset.UtcNow);
-        await cmd.ExecuteNonQueryAsync(ct);
+        _dbContext.FacebookPosts.Add(entity);
+        await _dbContext.SaveChangesAsync(ct);
     }
 }
-

@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using FACEBOOK_INTEGRATION.Data;
+using FACEBOOK_INTEGRATION.Interface;
 using FACEBOOK_INTEGRATION.Models;
 using FACEBOOK_INTEGRATION.Options;
 using Microsoft.Extensions.Options;
@@ -15,17 +15,17 @@ public sealed class FacebookService
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly FacebookOptions _options;
-    private readonly FacebookConnectionRepository _connectionRepo;
-    private readonly FacebookPageRepository _pageRepo;
-    private readonly FacebookPostRepository _postRepo;
+    private readonly IFacebookConnectionInterface _connectionRepo;
+    private readonly IFacebookPageInterface _pageRepo;
+    private readonly IFacebookPostInterface _postRepo;
     private readonly FacebookTokenService _tokenService;
 
     public FacebookService(
         IHttpClientFactory httpClientFactory,
         IOptions<FacebookOptions> options,
-        FacebookConnectionRepository connectionRepo,
-        FacebookPageRepository pageRepo,
-        FacebookPostRepository postRepo,
+        IFacebookConnectionInterface connectionRepo,
+        IFacebookPageInterface pageRepo,
+        IFacebookPostInterface postRepo,
         FacebookTokenService tokenService)
     {
         _httpClientFactory = httpClientFactory;
