@@ -1,0 +1,58 @@
+@page
+@model FACEBOOK_INTEGRATION.Pages.Facebook.PostModel
+@{
+    ViewData["Title"] = "Facebook Post";
+}
+
+<h2>Facebook Post</h2>
+
+<div class="mb-3">
+    <div><strong>ClientId:</strong> @Model.ClientId</div>
+    <div><a href="/Facebook/Integration">Back to Integration</a></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-info">@Model.StatusMessage</div>
+}
+
+@if (!Model.CanPost)
+{
+    <div class="alert alert-warning">Reconnect Required. <a href="/facebook/connect">Configure Facebook</a></div>
+}
+
+<form method="post" action="/facebook/post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Page</label>
+        <select class="form-select" name="pageId" required>
+            <option value="">-- choose --</option>
+            @foreach (var p in Model.Pages)
+            {
+                <option value="@p.PageId">@p.PageName (@p.PageId)</option>
+            }
+        </select>
+        <div class="form-text">Only pages for the selected ClientId are shown.</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Post type</label>
+        <select class="form-select" name="postType" required>
+            <option value="Text">Text</option>
+            <option value="Image">Image</option>
+            <option value="Video">Video</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Caption</label>
+        <textarea class="form-control" name="caption" rows="4"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Upload (required for Image/Video)</label>
+        <input class="form-control" type="file" name="file" />
+    </div>
+
+    <button class="btn btn-primary" type="submit" @(Model.CanPost ? "" : "disabled")>Publish</button>
+</form>
+

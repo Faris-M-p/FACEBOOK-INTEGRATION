@@ -1,0 +1,71 @@
+@page
+@model FACEBOOK_INTEGRATION.Pages.Facebook.IntegrationModel
+@{
+    ViewData["Title"] = "Facebook Integration";
+}
+
+<h2>Facebook Integration (Demo SaaS)</h2>
+
+@if (ViewData["Msg"] is string msg && !string.IsNullOrWhiteSpace(msg))
+{
+    <div class="alert alert-info">@msg</div>
+}
+
+<h3>Section 1: Connection</h3>
+<div class="mb-3">
+    <div><strong>ClientId:</strong> @Model.ClientId</div>
+    <div><strong>Connection status:</strong> @Model.ConnectionStatus</div>
+    <div><strong>Last sync (UTC):</strong> @(Model.LastSyncUtc?.ToString("u") ?? "-")</div>
+    <div><strong>Pages stored:</strong> @Model.PagesCount</div>
+</div>
+
+<div class="mb-4">
+    <a class="btn btn-primary" href="/facebook/connect">Configure Facebook</a>
+    <a class="btn btn-link" href="/">Change client</a>
+</div>
+
+<hr />
+
+<h3>Section 2: Post Form</h3>
+@if (!Model.TokenValid)
+{
+    <div class="alert alert-warning">Reconnect Required. Posting is disabled until you reconnect Facebook.</div>
+}
+
+<form method="post" action="/facebook/post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Page</label>
+        <select class="form-select" name="pageId" required>
+            <option value="">-- choose --</option>
+            @foreach (var p in Model.Pages)
+            {
+                <option value="@p.PageId">@p.PageName (@p.PageId)</option>
+            }
+        </select>
+        <div class="form-text">Only pages for the selected ClientId are shown.</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Post type</label>
+        <select class="form-select" name="postType" required>
+            <option value="Text">Text</option>
+            <option value="Image">Image</option>
+            <option value="Video">Video</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Caption</label>
+        <textarea class="form-control" name="caption" rows="4"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Upload (required for Image/Video)</label>
+        <input class="form-control" type="file" name="file" />
+    </div>
+
+    <h3>Section 3: Publish</h3>
+    <button class="btn btn-success" type="submit" @(Model.TokenValid ? "" : "disabled")>Publish</button>
+    <a class="btn btn-link" href="/Facebook/Post">Open dedicated Post page</a>
+</form>
+

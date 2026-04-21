@@ -1,10 +1,40 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Demo SaaS - Client Select";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<h2>Client Simulation</h2>
+
+@if (ViewData["Msg"] is string msg && !string.IsNullOrWhiteSpace(msg))
+{
+    <div class="alert alert-info">@msg</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.CurrentClientLabel))
+{
+    <div class="alert alert-secondary">Current client: <strong>@Model.CurrentClientLabel</strong></div>
+}
+
+@if (Model.Clients.Count == 0)
+{
+    <div class="alert alert-warning">
+        No clients loaded from DB. This usually means your `Clients` table uses different column names than expected.
+        Update the column mapping in <code>Data/ClientRepository.cs</code> (or rename/alias columns in SQL).
+    </div>
+}
+
+<form method="post" asp-page-handler="SelectClient">
+    <div class="mb-3">
+        <label class="form-label">Select Client</label>
+        <select class="form-select" asp-for="SelectedClientId">
+            <option value="">-- choose --</option>
+            @foreach (var c in Model.Clients)
+            {
+                <option value="@c.ClientId">@c.Name (#@c.ClientId)</option>
+            }
+        </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Set Client</button>
+    <a class="btn btn-link" href="/Facebook/Integration">Go to Facebook Integration</a>
+</form>
